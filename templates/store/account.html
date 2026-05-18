@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}My Account{% endblock %}
+
+{% block extra_head %}
+<style>
+  .account-layout { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; padding: 2.5rem 0 5rem; }
+  @media (max-width: 768px) { .account-layout { grid-template-columns: 1fr; } }
+
+  .account-nav h2 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 300; margin-bottom: 1.5rem; }
+  .account-nav ul { list-style: none; }
+  .account-nav li { margin-bottom: 0.25rem; }
+  .account-nav li a { font-size: 0.85rem; color: var(--text-muted); display: block; padding: 0.4rem 0; transition: color 0.2s; }
+  .account-nav li a:hover, .account-nav li a.active { color: var(--accent); }
+
+  .account-content h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 300; margin-bottom: 2rem; }
+  .section-label { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border); }
+
+  .orders-table { width: 100%; border-collapse: collapse; }
+  .orders-table th { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .orders-table td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .orders-table tr:hover td { background: var(--surface); }
+  .status-badge {
+    display: inline-block; padding: 0.2rem 0.6rem;
+    font-size: 0.65rem; letter-spacing: 0.08em; text-transform: uppercase; border-radius: 2px;
+  }
+  .status-completed { background: rgba(85,169,110,0.15); color: var(--success); }
+  .status-processing { background: rgba(201,169,110,0.15); color: var(--accent); }
+  .status-pending { background: rgba(122,117,112,0.15); color: var(--text-muted); }
+  .status-cancelled { background: rgba(224,85,85,0.15); color: var(--danger); }
+
+  .empty-orders { text-align: center; padding: 4rem 0; color: var(--text-muted); }
+  .empty-orders h3 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 300; margin-bottom: 0.75rem; color: var(--text); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="account-layout">
+    <aside class="account-nav">
+      <h2>Account</h2>
+      <ul>
+        <li><a href="{% url 'account' %}" class="active">My Orders</a></li>
+        <li><a href="{% url 'logout' %}">Logout</a></li>
+      </ul>
+      <div style="margin-top:2rem;padding:1rem;background:var(--surface);border:1px solid var(--border)">
+        <p style="font-size:0.8rem;color:var(--text-muted)">Logged in as</p>
+        <p style="font-size:0.875rem;margin-top:0.25rem">{{ user.username }}</p>
+        {% if user.email %}<p style="font-size:0.8rem;color:var(--text-muted)">{{ user.email }}</p>{% endif %}
+      </div>
+    </aside>
+
+    <div class="account-content">
+      <h1>My Orders</h1>
+      <p class="section-label">Order History</p>
+
+      {% if orders %}
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Order</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for order in orders %}
+              <tr>
+                <td><strong>#{{ order.wc_order_id }}</strong></td>
+                <td>{{ order.created_at|date:"M j, Y" }}</td>
+                <td>
+                  <span class="status-badge status-{{ order.status }}">{{ order.status }}</span>
+                </td>
+                <td class="price" style="font-size:0.9rem">{{ order.currency }} {{ order.total }}</td>
+                <td>
+                  <a href="{% url 'order_detail' order.wc_order_id %}" class="btn btn-outline btn-sm">View</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-orders">
+          <h3>No orders yet</h3>
+          <p>When you place an order, it will appear here.</p>
+          <a href="/" class="btn btn-primary" style="margin-top:1.5rem">Start Shopping</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

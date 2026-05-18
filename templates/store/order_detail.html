@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Order #{{ order.wc_order_id }}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .order-detail { max-width: 900px; margin: 3rem auto; padding: 0 2rem 5rem; }
+  .back-link { font-size: 0.8rem; color: var(--text-muted); display: inline-block; margin-bottom: 1.5rem; }
+  .back-link:hover { color: var(--accent); }
+  h1 { font-family: var(--font-display); font-size: 2rem; font-weight: 300; margin-bottom: 0.5rem; }
+  .order-status { display: inline-block; padding: 0.3rem 0.8rem; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(201,169,110,0.15); color: var(--accent); margin-bottom: 2rem; }
+  .order-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+  @media (max-width: 600px) { .order-grid { grid-template-columns: 1fr; } }
+  .info-box { background: var(--surface); border: 1px solid var(--border); padding: 1.5rem; }
+  .info-box h3 { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; }
+  .info-box p { font-size: 0.875rem; line-height: 1.7; }
+  .items-table { width: 100%; border-collapse: collapse; }
+  .items-table th { font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-weight: 400; }
+  .items-table td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.875rem; }
+  .total-row { display: flex; justify-content: space-between; padding: 0.75rem 1rem; font-size: 0.875rem; background: var(--surface); border-top: 1px solid var(--border); }
+  .total-row.grand { font-size: 1rem; background: var(--surface2); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="order-detail">
+  <a href="{% url 'account' %}" class="back-link">← Back to Orders</a>
+  <h1>Order #{{ order.wc_order_id }}</h1>
+  <div class="order-status">{{ order.status }}</div>
+  <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:2rem">Placed on {{ order.created_at|date:"F j, Y \a\t g:i A" }}</p>
+
+  <div class="order-grid">
+    <div class="info-box">
+      <h3>Billing Address</h3>
+      <p>
+        {{ order.billing_first_name }} {{ order.billing_last_name }}<br>
+        {{ order.billing_address_1 }}<br>
+        {{ order.billing_city }}, {{ order.billing_state }} {{ order.billing_postcode }}<br>
+        {{ order.billing_country }}<br>
+        {{ order.billing_email }}
+      </p>
+    </div>
+    <div class="info-box">
+      <h3>Order Summary</h3>
+      <p>
+        <strong>Order total:</strong> {{ order.currency }} {{ order.total }}<br>
+        <strong>Payment:</strong> Bank Transfer
+      </p>
+    </div>
+  </div>
+
+  {% if wc_order.line_items %}
+    <div style="background:var(--surface);border:1px solid var(--border)">
+      <table class="items-table">
+        <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+        <tbody>
+          {% for item in wc_order.line_items %}
+            <tr>
+              <td>{{ item.name }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>£{{ item.price }}</td>
+              <td>£{{ item.total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="total-row"><span>Subtotal</span><span>£{{ wc_order.subtotal|default:order.total }}</span></div>
+      <div class="total-row grand"><strong>Total</strong><span class="price">{{ order.currency }} {{ order.total }}</span></div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+{% block title %}Shop{% endblock %}
+
+{% block extra_head %}
+<style>
+  .shop-hero {
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 0 2rem;
+    margin-bottom: 2rem;
+  }
+  .shop-hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 300; letter-spacing: 0.05em;
+  }
+  .shop-hero p { color: var(--text-muted); margin-top: 0.5rem; }
+
+  .shop-layout { display: grid; grid-template-columns: 220px 1fr; gap: 3rem; padding: 2rem 0 4rem; }
+  @media (max-width: 900px) { .shop-layout { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+  /* Sidebar */
+  .sidebar h3 {
+    font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 1rem; padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar ul { list-style: none; }
+  .sidebar ul li { margin-bottom: 0.25rem; }
+  .sidebar ul li a {
+    font-size: 0.875rem; color: var(--text-muted);
+    display: block; padding: 0.3rem 0; transition: color 0.2s;
+  }
+  .sidebar ul li a:hover, .sidebar ul li a.active { color: var(--accent); }
+
+  /* Filters bar */
+  .filters-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;
+  }
+  .search-form { display: flex; gap: 0; }
+  .search-form input {
+    width: 240px; border-radius: 0; border-right: none;
+    padding: 0.6rem 1rem; font-size: 0.875rem;
+  }
+  .search-form button { padding: 0.6rem 1rem; background: var(--accent); border: none; cursor: pointer; color: #000; }
+  select.sort-select {
+    width: auto; padding: 0.6rem 1rem; font-size: 0.8rem;
+    letter-spacing: 0.05em;
+  }
+  .results-count { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* Product grid */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1.5rem;
+  }
+  .product-card {
+    background: var(--surface); border: 1px solid var(--border);
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .product-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .product-card-img {
+    aspect-ratio: 1/1; overflow: hidden; background: var(--surface2);
+    position: relative;
+  }
+  .product-card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
+  .product-card:hover .product-card-img img { transform: scale(1.04); }
+  .product-card-img .on-sale {
+    position: absolute; top: 0.75rem; left: 0.75rem;
+    background: var(--accent); color: #000;
+    font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+  }
+  .product-card-body { padding: 1rem 1.25rem 1.25rem; }
+  .product-card-body h3 {
+    font-size: 0.9rem; font-weight: 400; margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  .product-card-body h3 a:hover { color: var(--accent); }
+  .product-prices { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem; }
+  .add-btn {
+    width: 100%; padding: 0.65rem;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text); cursor: pointer;
+    font-family: var(--font-body); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .add-btn:hover { background: var(--accent); border-color: var(--accent); color: #000; }
+  .add-btn.variable { background: var(--surface2); }
+
+  /* No products */
+  .empty-state {
+    text-align: center; padding: 5rem 2rem; color: var(--text-muted);
+  }
+  .empty-state h2 { font-family: var(--font-display); font-size: 2rem; font-weight: 300; margin-bottom: 1rem; }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; gap: 0.5rem; justify-content: center; margin-top: 3rem; }
+  .pagination a, .pagination span {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border); font-size: 0.8rem; transition: all 0.2s;
+  }
+  .pagination a:hover { border-color: var(--accent); color: var(--accent); }
+  .pagination .current { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+    background: var(--surface); border: 1px solid var(--accent);
+    padding: 1rem 1.5rem; font-size: 0.85rem;
+    transform: translateY(100px); opacity: 0;
+    transition: all 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="shop-hero">
+    <h1>{% if selected_category %}{{ selected_category.name }}{% elif search %}Results for "{{ search }}"{% else %}Our Collection{% endif %}</h1>
+    <p>{{ total }} product{{ total|pluralize }} available</p>
+  </div>
+
+  <div class="shop-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <h3>Categories</h3>
+      <ul>
+        <li><a href="/" class="{% if not category_id %}active{% endif %}">All Products</a></li>
+        {% for cat in categories %}
+          <li><a href="/?category={{ cat.id }}" class="{% if category_id == cat.id|stringformat:'s' %}active{% endif %}">
+            {{ cat.name }}
+            <small style="color:var(--text-muted)">({{ cat.count }})</small>
+          </a></li>
+        {% endfor %}
+      </ul>
+    </aside>
+
+    <!-- Main -->
+    <div>
+      <div class="filters-bar">
+        <form class="search-form" method="get" action="/">
+          {% if category_id %}<input type="hidden" name="category" value="{{ category_id }}">{% endif %}
+          <input type="search" name="q" placeholder="Search products…" value="{{ search }}">
+          <button type="submit">↵</button>
+        </form>
+        <div style="display:flex; gap:1rem; align-items:center">
+          <span class="results-count">{{ total }} items</span>
+          <form method="get" id="sort-form">
+            {% if category_id %}<input type="hidden" name="category" value="{{ category_id }}">{% endif %}
+            {% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+            <select name="sort" class="sort-select" onchange="document.getElementById('sort-form').submit()">
+              <option value="date" {% if sort == 'date' %}selected{% endif %}>Newest</option>
+              <option value="price" {% if sort == 'price' %}selected{% endif %}>Price: Low–High</option>
+              <option value="price-desc" {% if sort == 'price-desc' %}selected{% endif %}>Price: High–Low</option>
+              <option value="popularity" {% if sort == 'popularity' %}selected{% endif %}>Popular</option>
+              <option value="rating" {% if sort == 'rating' %}selected{% endif %}>Rating</option>
+            </select>
+          </form>
+        </div>
+      </div>
+
+      {% if products %}
+        <div class="product-grid">
+          {% for product in products %}
+            <div class="product-card">
+              <a href="{% url 'product_detail' product.id %}">
+                <div class="product-card-img">
+                  {% if product.images %}
+                    <img src="{{ product.images.0.src }}" alt="{{ product.name }}" loading="lazy">
+                  {% else %}
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.75rem">No image</div>
+                  {% endif %}
+                  {% if product.on_sale %}<span class="on-sale">Sale</span>{% endif %}
+                </div>
+              </a>
+              <div class="product-card-body">
+                <h3><a href="{% url 'product_detail' product.id %}">{{ product.name }}</a></h3>
+                <div class="product-prices">
+                  <span class="price">
+                    {% if product.sale_price %}{{ product.sale_price }}{% else %}{{ product.price }}{% endif %}
+                    {{ product.currency }}
+                  </span>
+                  {% if product.sale_price and product.regular_price %}
+                    <span class="price-old">{{ product.regular_price }}</span>
+                  {% endif %}
+                </div>
+                {% if product.type == 'variable' %}
+                  <a href="{% url 'product_detail' product.id %}" class="add-btn variable">Select Options</a>
+                {% else %}
+                  <button class="add-btn" onclick="addToCart({{ product.id }}, this)">Add to Cart</button>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if total_pages > 1 %}
+          <div class="pagination">
+            {% if page > 1 %}<a href="?page={{ page|add:'-1' }}&category={{ category_id }}&q={{ search }}&sort={{ sort }}">&lsaquo;</a>{% endif %}
+            {% for p in total_pages|rjust:total_pages %}{% endfor %}
+            {% with ''|center:total_pages as range %}
+              {% for _ in range %}
+                {% with forloop.counter as i %}
+                  {% if i == page %}<span class="current">{{ i }}</span>
+                  {% elif i == 1 or i == total_pages or i >= page|add:'-2' and i <= page|add:'2' %}
+                    <a href="?page={{ i }}&category={{ category_id }}&q={{ search }}&sort={{ sort }}">{{ i }}</a>
+                  {% endif %}
+                {% endwith %}
+              {% endfor %}
+            {% endwith %}
+            {% if page < total_pages %}<a href="?page={{ page|add:'1' }}&category={{ category_id }}&q={{ search }}&sort={{ sort }}">&rsaquo;</a>{% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="empty-state">
+          <h2>No products found</h2>
+          <p>Try adjusting your filters or <a href="/" style="color:var(--accent)">browse all products</a>.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ Added to cart</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function addToCart(productId, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  fetch(`/cart/add/${productId}/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ quantity: 1 })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      btn.textContent = '✓ Added';
+      showToast('Added to cart!');
+      const counts = document.querySelectorAll('.count');
+      counts.forEach(c => c.textContent = data.cart_count);
+      if (!counts.length) {
+        const badge = document.querySelector('.cart-badge');
+        if (badge) {
+          const span = document.createElement('span');
+          span.className = 'count';
+          span.textContent = data.cart_count;
+          badge.appendChild(span);
+        }
+      }
+      setTimeout(() => { btn.disabled = false; btn.textContent = 'Add to Cart'; }, 1500);
+    }
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = '✓ ' + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+{% endblock %}

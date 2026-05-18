@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Create Account{% endblock %}
+
+{% block extra_head %}
+<style>
+  .auth-page { min-height: 70vh; display: flex; align-items: center; justify-content: center; padding: 3rem 2rem; }
+  .auth-box { width: 100%; max-width: 420px; }
+  .auth-box h1 { font-family: var(--font-display); font-size: 2.2rem; font-weight: 300; letter-spacing: 0.04em; margin-bottom: 0.5rem; }
+  .auth-box p { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; }
+  .auth-submit { width: 100%; padding: 0.875rem; background: var(--accent); color: #000; border: none; cursor: pointer; font-family: var(--font-body); font-size: 0.8rem; letter-spacing: 0.12em; text-transform: uppercase; transition: background 0.2s; margin-top: 0.5rem; }
+  .auth-submit:hover { background: var(--accent-dark); }
+  .auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); }
+  .auth-footer a { color: var(--accent); }
+  .errorlist { list-style: none; color: var(--danger); font-size: 0.8rem; margin: 0.4rem 0; }
+  .helptext { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-box">
+    <h1>Create Account</h1>
+    <p>Join us to track your orders and save your details.</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="form-group">
+          <label>{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="helptext">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      {% endfor %}
+      <button type="submit" class="auth-submit">Create Account →</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="{% url 'login' %}">Sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
